@@ -5,8 +5,8 @@ OBJ=shell.o
 
 all: $(PROJECT)
 
-%.o: %.c
-	$(CXX) $(CXXFLAGS) -c -o $@
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $< -c -o $@
 
 $(PROJECT): $(OBJ)
 	$(CXX) -o $@ $^ $(CXXFLAGS)
