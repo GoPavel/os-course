@@ -1,0 +1,97 @@
+# header
+CXX=g++
+CXX_FLAGS=
+
+# static library 1
+ARCHIVATOR=ar
+ARCHIVATOR_FLAGS= rvs
+
+STATIC_LIB1_NAME=a
+STATIC_LIB1=lib$(STATIC_LIB1_NAME).a
+STATIC_LIB1_DIR=lib_a
+STATIC_LIB1_SOURCE= $(STATIC_LIB1_DIR)/a.cpp $(STATIC_LIB1_DIR)/a1.cpp
+STATIC_LIB1_OBJECTS=$(STATIC_LIB1_DIR)/a.o $(STATIC_LIB1_DIR)/a1.o
+
+$(STATIC_LIB1_DIR)/%.o: $(STATIC_LIB1_DIR)/%.cpp
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
+
+$(STATIC_LIB1): $(STATIC_LIB1_OBJECTS)
+	$(ARCHIVATOR) $(ARCHIVATOR_FLAGS) $(STATIC_LIB1) $(STATIC_LIB1_OBJECTS)
+	mv $(STATIC_LIB1) $(STATIC_LIB1_DIR)
+
+.PHONY: clean_static_lib_a
+clean_static_lib_a:
+	rm -f $(STATIC_LIB1_DIR)/*.o $(STATIC_LIB1_DIR)/$(STATIC_LIB1)
+# dynamic library 1
+
+DYNAMIC_LIB1_NAME=b
+DYNAMIC_LIB1=lib$(DYNAMIC_LIB1_NAME).so
+DYNAMIC_LIB1_DIR=lib_b
+DYNAMIC_LIB1_SOURCE=$(DYNAMIC_LIB1_DIR)/b.cpp
+DYNAMIC_LIB1_OBJECTS=$(DYNAMIC_LIB1_DIR)/b.o
+DYNAMIC_LIB1_CXX_FLAG=-fPIC
+
+$(DYNAMIC_LIB1_DIR)/%.o: $(DYNAMIC_LIB1_DIR)/%.cpp
+	$(CXX) $(CXX_FLAGS) $(DYNAMIC_LIB1_CXX_FLAG) -c $< -o $@
+
+$(DYNAMIC_LIB1): $(DYNAMIC_LIB1_OBJECTS)
+	$(CXX) -shared $(DYNAMIC_LIB1_OBJECTS) -o $(DYNAMIC_LIB1)
+	mv	$(DYNAMIC_LIB1) $(DYNAMIC_LIB1_DIR)
+
+.PNOHY: clean_dynamic_lib_b
+clean_dynamic_lib_b:
+	rm -f $(DYNAMIC_LIB1_DIR)/*.o $(DYNAMIC_LIB1_DIR)/$(DYNAMIC_LIB1)
+
+# dynamic library 2
+
+DYNAMIC_LIB2_NAME=d
+DYNAMIC_LIB2=lib$(DYNAMIC_LIB2_NAME).so
+DYNAMIC_LIB2_DIR=lib_d
+DYNAMIC_LIB2_SOURCE=$(DYNAMIC_LIB2_DIR)/d.cpp
+DYNAMIC_LIB2_OBJECTS=$(DYNAMIC_LIB2_DIR)/d.o
+DYNAMIC_LIB2_CXX_FLAG=-fPIC
+
+$(DYNAMIC_LIB2_DIR)/%.o: $(DYNAMIC_LIB2_DIR)/%.cpp
+	$(CXX) $(CXX_FLAGS) $(DYNAMIC_LIB2_CXX_FLAG) -c $< -o $@
+
+$(DYNAMIC_LIB2): $(DYNAMIC_LIB2_OBJECTS)
+	$(CXX) -shared $(DYNAMIC_LIB2_OBJECTS) -o $(DYNAMIC_LIB2)
+	mv	$(DYNAMIC_LIB2) $(DYNAMIC_LIB2_DIR)
+
+.PNOHY: clean_dynamic_lib_d
+clean_dynamic_lib_d:
+	rm -f $(DYNAMIC_LIB2_DIR)/*.o $(DYNAMIC_LIB2_DIR)/$(DYNAMIC_LIB2)
+
+
+
+# project
+
+PROJECT=test
+PROJECT_SOURCE=main.cpp
+PROJECT_OBJECT=main.o
+
+
+$(PROJECT_OBJECT): $(PROJECT_SOURCE)
+	$(CXX) $(CXX_FLAGS) -c $< -o $@
+
+$(PROJECT): $(STATIC_LIB1) $(DYNAMIC_LIB1) $(DYNAMIC_LIB2) $(PROJECT_OBJECT)
+	$(CXX) $(CXX_FLAGS) -o $(PROJECT) $(PROJECT_OBJECT) \
+	-L$(CURDIR)/$(DYNAMIC_LIB1_DIR) -Wl,-rpath,$(CURDIR)/$(DYNAMIC_LIB1_DIR)/  -l$(DYNAMIC_LIB1_NAME) \
+	-Wl,-rpath,$(CURDIR)/$(DYNAMIC_LIB2_DIR)/  \
+	 $(STATIC_LIB1_DIR)/$(STATIC_LIB1) -ldl
+
+.PHONY: clean_project
+clean_project:
+	rm -f *.o *.a test *.out
+
+# target for shell
+
+run: clean $(PROJECT)
+	./$(PROJECT)
+
+.PHONY: clean
+clean: clean_project clean_static_lib_a clean_dynamic_lib_b clean_dynamic_lib_d
+
+
+check: clean $(PROJECT)
+	ldd $(PROJECT)
